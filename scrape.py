@@ -1,5 +1,6 @@
 import requests
 import lxml
+import lxml.html
 import re
 
 # constants
@@ -40,12 +41,25 @@ class HackerRank(object):
             "remember_me" : "false"
         }
         resp = self.session.post(LOGIN_URL, headers = self.headers, json = data)
-        print (resp.json())
-
-        return self.session
 
     def getSession(self):
         return self.session
 
-hr = HackerRank("LittleWho", "*secret*")
+    def scrapeAlgorithms(self):
+        url = "https://www.hackerrank.com/rest/contests/master/tracks/algorithms/challenges?offset=0&limit=500&filters[status][]=solved&track_login=true"
+        data = self.session.get(url).json()
+
+        problems = set()
+        for e in data["models"]:
+            problems.add(e["slug"])
+
+        url = "https://www.hackerrank.com/challenges/{}/submissions"
+        for problem in problems:
+            resp = self.session.get(url.format(problem)).text
+            tree = lxml.html.fromstring(resp)
+            link = "https://hackerrank.com" + tree.xpath('//div[@class="ellipsis submission-result"]')[0][0].get('href')
+            print (link)
+
+hr = HackerRank("LittleWho", "***")
 hr.createSession()
+data = hr.scrapeAlgorithms()
