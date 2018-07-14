@@ -2,6 +2,7 @@ import requests
 import lxml
 import lxml.html
 import re
+import os
 
 # constants
 DASHBOARD_URL = "https://www.hackerrank.com/dashboard"
@@ -75,7 +76,9 @@ class HackerRank(object):
 
             resp = self.session.get(code_url.format(problem, best_submission)).json()
             code = resp["model"]["code"]
-            ret.append((problem, code))
+
+            print ("[INFO] Scraped {}".format(problem))
+            ret.append((problem + "." + resp["model"]["language"], code))
 
         return ret
 
@@ -83,9 +86,28 @@ class Commiter(object):
     def __init__(self, files):
         self.files = files
 
+    def commit(self):
+        for elem in self.files:
+            filename = elem[0]
+            content  = elem[1]
+
+            print ("[INFO] Write to file {}".format(filename))
+            # write content
+            with open(filename, "w") as f:
+                f.write(content)
+                f.flush()
+
+            # commit
+            add_command = 'git add {}'.format(filename)
+            commit_command = 'git commit -m "Add solution for {}"'.format(filename.split(".")[0])
+            print (add_command)
+            os.system(add_command)
+            print (commit_command)
+            os.system(commit_command)
+
+
 hr = HackerRank("LittleWho", "***")
 hr.createSession()
 data = hr.scrapeAlgorithms()
-
-from pprint import pprint
-pprint (data)
+c = Commiter(data)
+c.commit()
