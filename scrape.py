@@ -83,17 +83,21 @@ class HackerRank(object):
         return ret
 
 class Commiter(object):
-    def __init__(self, files):
+    def __init__(self, files, directory):
         self.files = files
+        self.directory = directory
 
     def commit(self):
         for elem in self.files:
             filename = elem[0]
             content  = elem[1]
 
+            # try to create the directory
+            os.system("mkdir {}".format(self.directory))
+
             print ("[INFO] Write to file {}".format(filename))
             # write content
-            with open(filename, "w") as f:
+            with open(self.directory + "/" + filename, "w") as f:
                 f.write(content)
                 f.flush()
 
@@ -109,5 +113,5 @@ class Commiter(object):
 hr = HackerRank("LittleWho", "***")
 hr.createSession()
 data = hr.scrapeAlgorithms()
-c = Commiter(data)
+c = Commiter(data, "algorithms")
 c.commit()
