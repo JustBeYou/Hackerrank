@@ -41,11 +41,14 @@ class HackerRank(object):
             "remember_me" : "false"
         }
         resp = self.session.post(LOGIN_URL, headers = self.headers, json = data)
+        if 'Authorised Succesfully' not in resp.json()["messages"]:
+            raise Exception("Login failed.")
 
     def getSession(self):
         return self.session
 
     def scrapeAlgorithms(self):
+        # get solved challenges
         url = "https://www.hackerrank.com/rest/contests/master/tracks/algorithms/challenges?offset=0&limit=500&filters[status][]=solved&track_login=true"
         data = self.session.get(url).json()
 
@@ -53,13 +56,36 @@ class HackerRank(object):
         for e in data["models"]:
             problems.add(e["slug"])
 
-        url = "https://www.hackerrank.com/challenges/{}/submissions"
+        # get code for each challenge
+        submission_url = "https://www.hackerrank.com/rest/contests/master/challenges/{}/submissions/?offset=0&limit=100"
+        code_url = "https://www.hackerrank.com/rest/contests/master/challenges/{}/submissions/{}"
+
+        ret = []
         for problem in problems:
-            resp = self.session.get(url.format(problem)).text
-            tree = lxml.html.fromstring(resp)
-            link = "https://hackerrank.com" + tree.xpath('//div[@class="ellipsis submission-result"]')[0][0].get('href')
-            print (link)
+            resp = self.session.get(submission_url.format(problem)).json()
+
+            best_submission = 0
+            max_score = 0
+            # get the best submission for the problem
+            for submission in resp["models"]:
+                submission["score"] = int(float(submission["score"]) * 100)
+                if submission["score"] > max_score:
+                    max_score = submission["score"]
+                    best_submission = submission["id"]
+
+            resp = self.session.get(code_url.format(problem, best_submission)).json()
+            code = resp["model"]["code"]
+            ret.append((problem, code))
+
+        return ret
+
+class Commiter(object):
+    def __init__(self, files):
+        self.files = files
 
 hr = HackerRank("LittleWho", "***")
 hr.createSession()
 data = hr.scrapeAlgorithms()
+
+from pprint import pprint
+pprint (data)
